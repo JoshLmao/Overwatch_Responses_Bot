@@ -78,5 +78,19 @@ namespace OverwatchResponsesBot.Services
                 stickiedPosts.AddRange(sub.Hot.Where(x => x.IsStickied));
             return stickiedPosts;
         }
+
+        public List<string> GetSubredditFlairClasses(string subName)
+        {
+            List<string> classes = new List<string>();
+
+            var sub = m_listeningSubreddits.FirstOrDefault(x => x.Name == subName);
+            if(sub != null)
+            {
+                UserFlairTemplate[] flairs = sub.UserFlairTemplates;
+                classes.AddRange(flairs.Select(f => f.CssClass));
+            }
+
+            return classes;
+        }
     }
 }

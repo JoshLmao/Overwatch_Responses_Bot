@@ -13,7 +13,7 @@ namespace OverwatchResponsesBot.Services
     {
         //Note: cmLimit max is 500   
         static readonly int LIMIT = 500;
-        readonly string API_RESPONSES_URL = $"api.php?action=query&list=categorymembers&cmlimit={LIMIT}''&cmprop=title&format=json&cmtitle=Category:";
+        readonly string API_RESPONSES_URL = $"api.php?action=query&list=categorymembers&cmlimit={LIMIT}&cmprop=title&format=json&cmtitle=Category:";
         string m_category;
 
         public GamepediaResponsesParser(string category)

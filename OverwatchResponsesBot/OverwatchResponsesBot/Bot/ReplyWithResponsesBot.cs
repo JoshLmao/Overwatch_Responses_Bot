@@ -334,19 +334,19 @@ namespace OverwatchResponsesBot.Bot
                 string compareResponse = GeneralString(response.Response);
 
                 //If last char is punctuation in user comment, remove it and see if match
-                if(MessageModifier.IsLastCharPunctuation(compareComment))
+                if (MessageModifier.IsLastCharPunctuation(compareComment))
                 {
                     string corrected = compareComment.Remove(compareComment.Length - 1);
-                    if(corrected == compareResponse)
+                    if (corrected == compareResponse)
                     {
-                        if(ValidateIfDuplicateOrExcluded(comment, compareComment, response))
+                        if (ValidateIfDuplicateOrExcluded(comment, compareComment, response))
                             matchingResponses.Add(response);
                     }
                 }
                 //Check if comment has response. Reply if comment is solely for response
                 else if (compareComment == compareResponse)
                 {
-                    if(ValidateIfDuplicateOrExcluded(comment, compareComment, response))
+                    if (ValidateIfDuplicateOrExcluded(comment, compareComment, response))
                         matchingResponses.Add(response);
                 }
             }
@@ -428,7 +428,7 @@ namespace OverwatchResponsesBot.Bot
                             Environment.NewLine +
                             "*****" +
                             Environment.NewLine +
-                            "^^[Github](https://github.com/JoshLmao/Overwatch_Responses_Bot) ^^- ^^[Suggestions/Issues](https://github.com/JoshLmao/Overwatch_Responses_Bot/issues)";
+                            "^^Got ^^a ^^question? ^^Ask ^^/u/JoshLmao ^^- ^^[Github](https://github.com/JoshLmao/Overwatch_Responses_Bot) ^^- ^^[Suggestions/Issues](https://github.com/JoshLmao/Overwatch_Responses_Bot/issues)";
 
             m_redditService.ReplyToComment(originalComment, reply);
             m_repliedToComments.Add(originalComment);
