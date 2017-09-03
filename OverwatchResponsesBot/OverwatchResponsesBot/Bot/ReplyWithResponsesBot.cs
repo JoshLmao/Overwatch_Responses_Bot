@@ -93,6 +93,7 @@ namespace OverwatchResponsesBot.Bot
                             response.UseCount = oldResponse.UseCount;
                         }
                     }
+                    PreconvertCurrentResponses();
 
                     WriteDatabaseToFile(ResponsesDatabase.Responses, filePath);
                     Debug.LogImportant("Successfully transferred old database data to new database");
@@ -106,6 +107,8 @@ namespace OverwatchResponsesBot.Bot
                         parsedSuccessfully = ResponsesDatabase.Responses != null && ResponsesDatabase.Responses.Count > 0;
 
                         Debug.Log($"Database file found. Using data from file {filePath}");
+                        PreconvertCurrentResponses();
+                        WriteDatabaseToFile(ResponsesDatabase.Responses, filePath);
                     }
                     catch (Exception e)
                     {
@@ -117,6 +120,7 @@ namespace OverwatchResponsesBot.Bot
                     {
                         //If fail to parse existing database, recreate it
                         Debug.LogImportant("Couldn't deserialize previous database file. Recreating database...");
+
                         PopulateDatabase(filePath);
                     }
                 }
@@ -135,6 +139,40 @@ namespace OverwatchResponsesBot.Bot
         }
 
         /// <summary>
+        /// Pre converts all responses ahead of time
+        /// </summary>
+        /// <param name="responses"></param>
+        /// <returns></returns>
+        List<CharacterResponse> PreconvertResponses(List<CharacterResponse> responses)
+        {
+            foreach (CharacterResponse response in responses)
+            {
+                string converted = "";
+                switch(m_compareType)
+                {
+                    case CompareType.General:
+                        converted = GeneralString(response.Response);
+                        break;
+                    case CompareType.Accurate:
+                        converted = AccurateString(response.Response);
+                        break;
+                    default:
+                        throw new NotImplementedException("Need to use a comparison type that has been implemented");
+                }
+                response.ConvertedResponse = converted;
+            }
+
+            return responses;
+        }
+
+        void PreconvertCurrentResponses()
+        {
+            Debug.Log("Converting database responses...");
+            ResponsesDatabase.Responses = PreconvertResponses(ResponsesDatabase.Responses);
+            Debug.Log("Finished converting responses & added to database");
+        }
+
+        /// <summary>
         /// Sets up the file database to be written to once gathered the latest responses
         /// </summary>
         /// <param name="databaseFilePath">The file path of the database</param>
@@ -149,7 +187,7 @@ namespace OverwatchResponsesBot.Bot
         }
 
         /// <summary>
-        /// Gatheres the latest responses from the Gwent Wiki and saves them to the database and the file
+        /// Gatheres the latest responses from the Gwent Wiki and saves them to the database and the file. Also pre-converts them
         /// </summary>
         /// <param name="filePath">The file path. Can be empty if none specified</param>
         void PopulateDatabase(string filePath)
@@ -165,8 +203,11 @@ namespace OverwatchResponsesBot.Bot
             //Set responses after parsing
             ResponsesDatabase.Responses = responses;
 
+            //Preconvert responses
+            PreconvertCurrentResponses();
+
             //Save all to file for next time
-            if(filePath != "")
+            if (filePath != "")
                 WriteDatabaseToFile(responses, filePath);
         }
 
@@ -283,20 +324,38 @@ namespace OverwatchResponsesBot.Bot
             List<CharacterResponse> matchingResponses = new List<CharacterResponse>();
             foreach (CharacterResponse response in ResponsesDatabase.Responses)
             {
-                string compareResponse = AccurateString(response.Response);
-
-                //Check if comment has response. Reply if comment is solely for response
-                if (compareComment == compareResponse)
+                if (response.ConvertedResponse != null)
                 {
-                    //Dont post response if phrase matched excluded phrases
-                    if (Constants.EXCLUDE_PHRASES.Any(x => x.ToLower() == compareComment))
-                        continue;
+                    if (compareComment == response.ConvertedResponse)
+                    {
+                        //Dont post response if phrase matched excluded phrases
+                        if (Constants.EXCLUDE_PHRASES.Any(x => x.ToLower() == compareComment))
+                            continue;
 
-                    //Dont reply if bot has already replied
-                    if (comment.Comments.Any(x => x.AuthorName == m_botUsername))
-                        continue;
-                    else
-                        matchingResponses.Add(response);
+                        //Dont reply if bot has already replied
+                        if (comment.Comments.Any(x => x.AuthorName == m_botUsername))
+                            continue;
+                        else
+                            matchingResponses.Add(response);
+                    }
+                }
+                else
+                {
+                    string compareResponse = AccurateString(response.Response);
+
+                    //Check if comment has response. Reply if comment is solely for response
+                    if (compareComment == compareResponse)
+                    {
+                        //Dont post response if phrase matched excluded phrases
+                        if (Constants.EXCLUDE_PHRASES.Any(x => x.ToLower() == compareComment))
+                            continue;
+
+                        //Dont reply if bot has already replied
+                        if (comment.Comments.Any(x => x.AuthorName == m_botUsername))
+                            continue;
+                        else
+                            matchingResponses.Add(response);
+                    }
                 }
             }
 
@@ -331,29 +390,37 @@ namespace OverwatchResponsesBot.Bot
             List<CharacterResponse> matchingResponses = new List<CharacterResponse>();
             foreach (CharacterResponse response in ResponsesDatabase.Responses)
             {
-                string compareResponse = GeneralString(response.Response);
-
-                //If last char is punctuation in user comment, remove it and see if match
-                if (MessageModifier.IsLastCharPunctuation(compareComment))
+                if(response.ConvertedResponse != null)
                 {
-                    string corrected = compareComment.Remove(compareComment.Length - 1);
-                    if (corrected == compareResponse)
+                    if (ValidateIfDuplicateOrExcluded(comment, compareComment, response))
+                        matchingResponses.Add(response);
+                }
+                else
+                {
+                    string compareResponse = GeneralString(response.Response);
+
+                    //If last char is punctuation in user comment, remove it and see if match
+                    if (MessageModifier.IsLastCharPunctuation(compareComment))
+                    {
+                        string corrected = compareComment.Remove(compareComment.Length - 1);
+                        if (corrected == compareResponse)
+                        {
+                            if (ValidateIfDuplicateOrExcluded(comment, compareComment, response))
+                                matchingResponses.Add(response);
+                        }
+                    }
+                    //Check if comment has response. Reply if comment is solely for response
+                    else if (compareComment == compareResponse)
                     {
                         if (ValidateIfDuplicateOrExcluded(comment, compareComment, response))
                             matchingResponses.Add(response);
                     }
                 }
-                //Check if comment has response. Reply if comment is solely for response
-                else if (compareComment == compareResponse)
-                {
-                    if (ValidateIfDuplicateOrExcluded(comment, compareComment, response))
-                        matchingResponses.Add(response);
-                }
             }
 
-            //Determine which is best to use from many matched
             if (matchingResponses.Count > 0)
             {
+                //ToDo: Determine which is best to use from many matched
                 return new KeyValuePair<bool, CharacterResponse>(true, matchingResponses.First());
             }
             return new KeyValuePair<bool, CharacterResponse>(false, null);
@@ -430,7 +497,7 @@ namespace OverwatchResponsesBot.Bot
                             Environment.NewLine +
                             "^^Got ^^a ^^question? ^^Ask ^^/u/JoshLmao ^^- ^^[Github](https://github.com/JoshLmao/Overwatch_Responses_Bot) ^^- ^^[Suggestions/Issues](https://github.com/JoshLmao/Overwatch_Responses_Bot/issues)";
 
-            m_redditService.ReplyToComment(originalComment, reply);
+            //m_redditService.ReplyToComment(originalComment, reply);
             m_repliedToComments.Add(originalComment);
 
             response.UseCount++;
