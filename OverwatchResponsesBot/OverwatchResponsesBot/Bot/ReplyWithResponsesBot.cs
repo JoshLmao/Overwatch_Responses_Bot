@@ -392,8 +392,11 @@ namespace OverwatchResponsesBot.Bot
             {
                 if(response.ConvertedResponse != null)
                 {
-                    if (ValidateIfDuplicateOrExcluded(comment, compareComment, response))
-                        matchingResponses.Add(response);
+                    if(compareComment == response.ConvertedResponse)
+                    {
+                        if (ValidateIfDuplicateOrExcluded(comment, compareComment, response))
+                            matchingResponses.Add(response);
+                    }
                 }
                 else
                 {
@@ -497,7 +500,7 @@ namespace OverwatchResponsesBot.Bot
                             Environment.NewLine +
                             "^^Got ^^a ^^question? ^^Ask ^^/u/JoshLmao ^^- ^^[Github](https://github.com/JoshLmao/Overwatch_Responses_Bot) ^^- ^^[Suggestions/Issues](https://github.com/JoshLmao/Overwatch_Responses_Bot/issues)";
 
-            //m_redditService.ReplyToComment(originalComment, reply);
+            m_redditService.ReplyToComment(originalComment, reply);
             m_repliedToComments.Add(originalComment);
 
             response.UseCount++;
